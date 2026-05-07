@@ -440,8 +440,14 @@ async function showPage(name) {
 
 // ═══════════════════ RENDER ═══════════════════
 function getEstado(p) {
-  if (p.stock === 0) return { label:'Agotado', cls:'badge-danger' };
-  if (p.stock < p.minimo) return { label:'Stock bajo', cls:'badge-warning' };
+  if (p.stock_actual === 0) {
+    return { label:'Agotado', cls:'badge-danger' };
+  }
+
+  if (p.stock_actual < p.stock_minimo) {
+    return { label:'Stock bajo', cls:'badge-warning' };
+  }
+
   return { label:'Disponible', cls:'badge-success' };
 }
 
@@ -454,101 +460,225 @@ function refreshAll() {
 }
 
 function renderDashboard() {
+
   const total = productos.length;
-  const valor = productos.reduce((a,p) => a + p.stock * p.precio, 0);
-  const bajo = productos.filter(p => p.stock > 0 && p.stock < p.minimo).length;
-  const agotado = productos.filter(p => p.stock === 0).length;
+
+  const valor = productos.reduce((a,p) =>
+    a + (p.stock_actual * p.precio), 0
+  );
+
+  const bajo = productos.filter(p =>
+    p.stock_actual > 0 &&
+    p.stock_actual < p.stock_minimo
+  ).length;
+
+  const agotado = productos.filter(p =>
+    p.stock_actual === 0
+  ).length;
+
   document.getElementById('stat-total').textContent = total;
-  document.getElementById('stat-valor').textContent = '$' + valor.toLocaleString('es-CO');
+
+  document.getElementById('stat-valor').textContent =
+    '$' + valor.toLocaleString('es-CO');
+
   document.getElementById('stat-bajo').textContent = bajo;
+
   document.getElementById('stat-agotado').textContent = agotado;
+
   const tb = document.getElementById('dash-table');
+
   tb.innerHTML = productos.slice(0,8).map(p => {
+
     const e = getEstado(p);
-    return `<tr><td>${p.nombre}</td><td>${p.categoria}</td><td><b>${p.stock}</b></td><td>$${p.precio}</td><td><span class="badge ${e.cls}">${e.label}</span></td></tr>`;
+
+    return `
+      <tr>
+        <td>${p.nombre}</td>
+        <td>${p.categoria}</td>
+        <td><b>${p.stock_actual}</b></td>
+        <td>$${p.precio}</td>
+        <td>
+          <span class="badge ${e.cls}">
+            ${e.label}
+          </span>
+        </td>
+      </tr>
+    `;
+
   }).join('');
 }
 
 function renderProductos() {
-  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
-  const filtered = productos.filter(p => p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q));
+
+  const q =
+    document.getElementById('search-input')?.value.toLowerCase() || '';
+
+  const filtered = productos.filter(p =>
+    p.nombre.toLowerCase().includes(q) ||
+    p.categoria.toLowerCase().includes(q)
+  );
+
   const tb = document.getElementById('productos-table');
-  if (!filtered.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-msg">Sin resultados</td></tr>'; return; }
+
+  if (!filtered.length) {
+
+    tb.innerHTML =
+      '<tr><td colspan="8" class="empty-msg">Sin resultados</td></tr>';
+
+    return;
+  }
+
   tb.innerHTML = filtered.map(p => {
+
     const e = getEstado(p);
-    return `<tr>
-      <td style="color:var(--muted);font-size:12px;">#${p.id}</td>
-      <td style="font-weight:500">${p.nombre}</td>
-      <td><span style="font-size:12px;color:var(--muted)">${p.categoria}</span></td>
-      <td><b style="color:${p.stock===0?'var(--danger)':p.stock<p.minimo?'var(--warning)':'var(--text)'}">${p.stock}</b></td>
-      <td style="color:var(--muted)">${p.minimo}</td>
-      <td>$${p.precio}</td>
-      <td><span class="badge ${e.cls}">${e.label}</span></td>
-      <td style="display:flex;gap:6px;">
-        <button class="icon-btn" onclick="openModal(${p.id})" title="Editar">✏️</button>
-        <button class="icon-btn del" onclick="deleteProducto(${p.id})" title="Eliminar">🗑️</button>
-      </td>
-    </tr>`;
+
+    return `
+      <tr>
+
+        <td style="color:var(--muted);font-size:12px;">
+          #${p.id}
+        </td>
+
+        <td style="font-weight:500">
+          ${p.nombre}
+        </td>
+
+        <td>
+          <span style="font-size:12px;color:var(--muted)">
+            ${p.categoria}
+          </span>
+        </td>
+
+        <td>
+          <b style="color:
+            ${
+              p.stock_actual === 0
+              ? 'var(--danger)'
+              : p.stock_actual < p.stock_minimo
+              ? 'var(--warning)'
+              : 'var(--text)'
+            }">
+
+            ${p.stock_actual}
+
+          </b>
+        </td>
+
+        <td style="color:var(--muted)">
+          ${p.stock_minimo}
+        </td>
+
+        <td>
+          $${p.precio}
+        </td>
+
+        <td>
+          <span class="badge ${e.cls}">
+            ${e.label}
+          </span>
+        </td>
+
+        <td style="display:flex;gap:6px;">
+
+          <button
+            class="icon-btn"
+            onclick="openModal(${p.id})"
+            title="Editar">
+
+            ✏️
+
+          </button>
+
+          <button
+            class="icon-btn del"
+            onclick="deleteProducto(${p.id})"
+            title="Eliminar">
+
+            🗑️
+
+          </button>
+
+        </td>
+
+      </tr>
+    `;
+
   }).join('');
 }
 
 function renderAlertas() {
-  const alertas = productos.filter(p => p.stock <= p.minimo);
+
+  const alertas = productos.filter(p =>
+    p.stock_actual <= p.stock_minimo
+  );
+
   const el = document.getElementById('alerts-list');
-  if (!alertas.length) { el.innerHTML = '<div class="empty-msg" style="background:var(--surface);border-radius:12px;padding:40px">✅ Sin alertas activas — ¡Inventario saludable!</div>'; return; }
-  el.innerHTML = alertas.map(p => {
-    const cls = p.stock === 0 ? 'critical' : 'low';
-    const msg = p.stock === 0 ? 'Producto AGOTADO — requiere reposición urgente' : `Stock por debajo del mínimo (mín: ${p.minimo} unidades)`;
-    return `<div class="alert-item ${cls}">
-      <div class="alert-dot ${cls}"></div>
-      <div class="alert-content">
-        <div class="alert-name">${p.nombre}</div>
-        <div class="alert-desc">${msg} · Proveedor: ${p.proveedor}</div>
+
+  if (!alertas.length) {
+
+    el.innerHTML = `
+      <div class="empty-msg"
+        style="background:var(--surface);
+        border-radius:12px;
+        padding:40px">
+
+        ✅ Sin alertas activas — ¡Inventario saludable!
+
       </div>
-      <div class="alert-stock ${cls}">${p.stock}</div>
-    </div>`;
+    `;
+
+    return;
+  }
+
+  el.innerHTML = alertas.map(p => {
+
+    const cls =
+      p.stock_actual === 0 ? 'critical' : 'low';
+
+    const msg =
+      p.stock_actual === 0
+      ? 'Producto AGOTADO — requiere reposición urgente'
+      : `Stock por debajo del mínimo (mín: ${p.stock_minimo} unidades)`;
+
+    return `
+      <div class="alert-item ${cls}">
+
+        <div class="alert-dot ${cls}"></div>
+
+        <div class="alert-content">
+
+          <div class="alert-name">
+            ${p.nombre}
+          </div>
+
+          <div class="alert-desc">
+            ${msg} · Proveedor: ${p.proveedor}
+          </div>
+
+        </div>
+
+        <div class="alert-stock ${cls}">
+          ${p.stock_actual}
+        </div>
+
+      </div>
+    `;
+
   }).join('');
 }
 
-function renderHistorial() {
-  console.log(historial);
-  const el = document.getElementById('historial-list');
-  if (!historial.length) {
-    el.innerHTML = `
-      <div class="empty-msg">
-        Sin movimientos registrados
-      </div>
-    `;
-    return;
-  }
-  const icons = {
-    add: '📦',
-    edit: '✏️',
-    delete: '🗑️',
-    sale: '💰'
-  };
-  el.innerHTML = historial.map(h => `
-    <div class="timeline-item">
-      <div class="t-icon ${h.tipo}">
-        ${icons[h.tipo] || '📋'}
-      </div>
-      <div class="t-meta">
-        <div class="t-desc">
-          ${h.descripcion}
-        </div>
-        <div class="t-time">
-          ${new Date(h.fecha).toLocaleString('es-CO')}
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
 function updateAlertBadge() {
-  const n = productos.filter(p => p.stock <= p.minimo).length;
+
+  const n = productos.filter(p =>
+    p.stock_actual <= p.stock_minimo
+  ).length;
+
   const b = document.getElementById('alert-badge');
+
   b.textContent = n;
-  b.style.display = n > 0 ? 'inline' : 'none';
+
+  b.style.display =
+    n > 0 ? 'inline' : 'none';
 }
 
 // ═══════════════════ CRUD ═══════════════════
