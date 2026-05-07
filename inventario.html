@@ -381,7 +381,7 @@ let productos = [];
 
 async function cargarProductos() {
   try {
-    const response = await fetch("http://localhost:3000/productos");
+    const response = await fetch("https://stockflow-mkrb.onrender.com/productos");
     productos = await response.json();
     refreshAll();
     await cargarHistorial();
@@ -392,7 +392,7 @@ async function cargarProductos() {
 
 async function cargarHistorial() {
   try {
-    const response = await fetch("http://localhost:3000/historial");
+    const response = await fetch("https://stockflow-mkrb.onrender.com/historial");
     historial = await response.json();
     renderHistorial();
   } catch (error) {
@@ -609,7 +609,7 @@ async function saveProducto() {
     // EDITAR
     if (editingId) {
 
-      response = await fetch(`http://localhost:3000/productos/${editingId}`, {
+      response = await fetch(`https://stockflow-mkrb.onrender.com/productos/${editingId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json"
@@ -620,7 +620,7 @@ async function saveProducto() {
     } else {
 
       // CREAR
-      response = await fetch("http://localhost:3000/productos", {
+      response = await fetch("https://stockflow-mkrb.onrender.com/productos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -709,7 +709,7 @@ async function registrarVenta() {
     return alert('Cantidad inválida.');
   }
   try {
-    const response = await fetch("http://localhost:3000/ventas", {
+    const response = await fetch("https://stockflow-mkrb.onrender.com/ventas", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
