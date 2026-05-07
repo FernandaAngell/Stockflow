@@ -47,21 +47,21 @@ app.post("/productos", (req, res) => {
   const {
     nombre,
     categoria,
-    stock,
-    minimo,
+    stock_actual,
+    stock_minimo,
     precio,
     proveedor
   } = req.body;
 
   const sql = `
     INSERT INTO productos
-    (nombre, categoria, stock, minimo, precio, proveedor)
+    (nombre, categoria, stock_actual, stock_minimo, precio, proveedor)
     VALUES (?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
-    [nombre, categoria, stock, minimo, precio, proveedor],
+    [nombre, categoria, stock_actual, stock_minimo, precio, proveedor],
 
     (err, result) => {
 
@@ -69,12 +69,6 @@ app.post("/productos", (req, res) => {
         console.log(err);
         res.status(500).send("Error agregando producto");
       } else {
-
-        // HISTORIAL
-        db.query(
-          "INSERT INTO historial (tipo, descripcion) VALUES (?, ?)",
-          ["add", `Producto "${nombre}" agregado`]
-        );
 
         res.send("Producto agregado 😎");
       }
@@ -103,12 +97,6 @@ app.delete("/productos/:id", (req, res) => {
         res.status(500).send("Error eliminando producto");
       } else {
 
-        // HISTORIAL
-        db.query(
-          "INSERT INTO historial (tipo, descripcion) VALUES (?, ?)",
-          ["delete", `Producto eliminado ID ${id}`]
-        );
-
         res.send("Producto eliminado 🗑️");
       }
 
@@ -128,8 +116,8 @@ app.put("/productos/:id", (req, res) => {
   const {
     nombre,
     categoria,
-    stock,
-    minimo,
+    stock_actual,
+    stock_minimo,
     precio,
     proveedor
   } = req.body;
@@ -139,8 +127,8 @@ app.put("/productos/:id", (req, res) => {
     SET
       nombre = ?,
       categoria = ?,
-      stock = ?,
-      minimo = ?,
+      stock_actual = ?,
+      stock_minimo = ?,
       precio = ?,
       proveedor = ?
     WHERE id = ?
@@ -148,7 +136,15 @@ app.put("/productos/:id", (req, res) => {
 
   db.query(
     sql,
-    [nombre, categoria, stock, minimo, precio, proveedor, id],
+    [
+      nombre,
+      categoria,
+      stock_actual,
+      stock_minimo,
+      precio,
+      proveedor,
+      id
+    ],
 
     (err, result) => {
 
@@ -156,12 +152,6 @@ app.put("/productos/:id", (req, res) => {
         console.log(err);
         res.status(500).send("Error actualizando producto");
       } else {
-
-        // HISTORIAL
-        db.query(
-          "INSERT INTO historial (tipo, descripcion) VALUES (?, ?)",
-          ["edit", `Producto "${nombre}" actualizado`]
-        );
 
         res.send("Producto actualizado 😎");
       }
@@ -173,36 +163,13 @@ app.put("/productos/:id", (req, res) => {
 
 
 // =========================
-// OBTENER HISTORIAL
-// =========================
-app.get("/historial", (req, res) => {
-
-  db.query(
-    "SELECT * FROM historial ORDER BY fecha DESC",
-
-    (err, results) => {
-
-      if (err) {
-        console.log(err);
-        res.status(500).send("Error obteniendo historial");
-      } else {
-        res.json(results);
-      }
-
-    }
-  );
-
-});
-
-// =========================
 // REGISTRAR VENTA
 // =========================
 app.post("/ventas", (req, res) => {
 
   const {
     productoId,
-    cantidad,
-    cliente
+    cantidad
   } = req.body;
 
   db.query(
@@ -222,14 +189,14 @@ app.post("/ventas", (req, res) => {
 
       const producto = results[0];
 
-      if (producto.stock < cantidad) {
+      if (producto.stock_actual < cantidad) {
         return res.status(400).send("Stock insuficiente");
       }
 
-      const nuevoStock = producto.stock - cantidad;
+      const nuevoStock = producto.stock_actual - cantidad;
 
       db.query(
-        "UPDATE productos SET stock = ? WHERE id = ?",
+        "UPDATE productos SET stock_actual = ? WHERE id = ?",
         [nuevoStock, productoId],
 
         (err2) => {
@@ -238,14 +205,6 @@ app.post("/ventas", (req, res) => {
             console.log(err2);
             return res.status(500).send("Error actualizando stock");
           }
-
-          db.query(
-            "INSERT INTO historial (tipo, descripcion) VALUES (?, ?)",
-            [
-              "sale",
-              `Venta de ${cantidad}x ${producto.nombre}${cliente ? " - Cliente: " + cliente : ""}`
-            ]
-          );
 
           res.send("Venta registrada 😎");
 
@@ -257,9 +216,12 @@ app.post("/ventas", (req, res) => {
 
 });
 
+
 // =========================
 // SERVIDOR
 // =========================
-app.listen(3000, () => {
-  console.log("Servidor en puerto 3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Servidor corriendo 🚀");
 });
