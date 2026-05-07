@@ -683,6 +683,9 @@ function updateAlertBadge() {
 
 // ═══════════════════ CRUD ═══════════════════
 function openModal(id) {
+
+   editingId = null;
+   
   const m = document.getElementById('modal-producto');
   document.getElementById('edit-id').value = '';
   document.getElementById('f-nombre').value = '';
