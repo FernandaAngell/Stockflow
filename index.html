@@ -697,8 +697,8 @@ function openModal(id) {
     document.getElementById('edit-id').value = id;
     document.getElementById('f-nombre').value = p.nombre;
     document.getElementById('f-categoria').value = p.categoria;
-    document.getElementById('f-stock').value = p.stock;
-    document.getElementById('f-minimo').value = p.minimo;
+    document.getElementById('f-stock').value = p.stock_actual;
+    document.getElementById('f-minimo').value = p.stock_minimo;
     document.getElementById('f-precio').value = p.precio;
     document.getElementById('f-proveedor').value = p.proveedor;
     document.getElementById('modal-title').textContent = 'Editar Producto';
@@ -724,12 +724,12 @@ async function saveProducto() {
   }
 
   const data = {
-    nombre,
-    categoria,
-    stock,
-    minimo,
-    precio,
-    proveedor
+  nombre,
+  categoria,
+  stock_actual: stock,
+  stock_minimo: minimo,
+  precio,
+  proveedor
   };
 
   try {
@@ -827,7 +827,7 @@ async function deleteProducto(id) {
 // ═══════════════════ VENTAS ═══════════════════
 function openVentaModal() {
   const sel = document.getElementById('v-producto');
-  sel.innerHTML = productos.filter(p => p.stock > 0).map(p => `<option value="${p.id}">${p.nombre} (stock: ${p.stock})</option>`).join('');
+  sel.innerHTML = productos.filter(p => p.stock_actual > 0).map(p => `<option value="${p.id}">${p.nombre} (stock: ${p.stock_actual})</option>`).join('');
   document.getElementById('modal-venta').classList.add('open');
 }
 function closeVentaModal() { document.getElementById('modal-venta').classList.remove('open'); }
@@ -845,12 +845,9 @@ async function registrarVenta() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-       nombre,
-       categoria,
-       stock_actual: stock,
-       stock_minimo: minimo,
-       precio,
-       proveedor
+        productoId,
+        cantidad,
+        cliente
       })
     });
     if (response.ok) {
