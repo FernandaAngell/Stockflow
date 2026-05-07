@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockFlow — Sistema de Inventario</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161922;
+    --surface2: #1e2330;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --muted: #7a7f96;
+    --accent: #6c63ff;
+    --accent2: #8b83ff;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #38bdf8;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(108,99,255,0.15), transparent);
+  }
+  .login-card {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 20px; padding: 48px 40px; width: 380px;
+  }
+  .login-logo { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; color: var(--accent2); margin-bottom: 8px; }
+  .login-sub { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+  .field-group { margin-bottom: 20px; }
+  .field-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+  .field-group input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 12px 16px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none; transition: border .2s;
+  }
+  .field-group input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%; background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 13px; font-size: 15px;
+    font-family: 'DM Sans', sans-serif; font-weight: 600; cursor: pointer; transition: opacity .2s;
+  }
+  .btn-primary:hover { opacity: 0.88; }
+  .login-hint { font-size: 12px; color: var(--muted); text-align: center; margin-top: 18px; }
+  .login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+
+  /* ── APP SHELL ── */
+  #app { display: none; flex-direction: row; min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 24px 0; position: fixed;
+    height: 100vh; z-index: 10;
+  }
+  .logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px;
+    color: var(--accent2); padding: 0 24px 32px; letter-spacing: -0.5px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 11px 24px;
+    cursor: pointer; color: var(--muted); font-size: 14px; font-weight: 500;
+    transition: color .2s, background .2s; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(108,99,255,0.06); }
+  .nav-item.active { color: var(--accent2); border-left-color: var(--accent); background: rgba(108,99,255,0.08); }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; padding: 16px 24px; }
+  .logout-btn {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    color: var(--muted); font-size: 14px; transition: color .2s;
+  }
+  .logout-btn:hover { color: var(--danger); }
+
+  /* ── MAIN ── */
+  .main { margin-left: 240px; flex: 1; padding: 32px 36px; min-height: 100vh; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin-bottom: 28px; }
+
+  /* ── STAT CARDS ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+  .stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; }
+  .stat-value.green { color: var(--success); }
+  .stat-value.yellow { color: var(--warning); }
+  .stat-value.red { color: var(--danger); }
+  .stat-value.blue { color: var(--info); }
+
+  /* ── TABLE ── */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .table-title { font-size: 15px; font-weight: 600; }
+  .table-actions { display: flex; gap: 10px; align-items: center; }
+  .search-input {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 8px 14px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; width: 200px;
+  }
+  .search-input::placeholder { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; }
+  th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .6px; padding: 12px 16px; text-align: left; background: var(--surface2); }
+  td { padding: 13px 16px; font-size: 14px; border-top: 1px solid var(--border); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block; padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+  }
+  .badge-success { background: rgba(34,197,94,.15); color: #4ade80; }
+  .badge-warning { background: rgba(245,158,11,.15); color: #fbbf24; }
+  .badge-danger { background: rgba(239,68,68,.15); color: #f87171; }
+
+  /* ── ICON BUTTONS ── */
+  .icon-btn {
+    background: none; border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--muted); cursor: pointer; padding: 5px 8px; font-size: 14px; transition: all .2s;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+  .icon-btn.del:hover { color: var(--danger); border-color: var(--danger); }
+
+  /* ── ADD BTN ── */
+  .btn-add {
+    background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm);
+    padding: 9px 18px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+    font-weight: 600; cursor: pointer; transition: opacity .2s; display: flex; align-items: center; gap: 7px;
+  }
+  .btn-add:hover { opacity: 0.88; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6);
+    z-index: 100; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 16px; padding: 32px; width: 480px; max-width: 90vw;
+  }
+  .modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 24px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-field { display: flex; flex-direction: column; gap: 7px; }
+  .form-field.full { grid-column: span 2; }
+  .form-field label { font-size: 13px; color: var(--muted); font-weight: 500; }
+  .form-field input, .form-field select {
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 11px 14px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border .2s;
+  }
+  .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+  .form-field select option { background: var(--surface2); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+  .btn-cancel {
+    background: none; border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    padding: 10px 20px; color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 14px; cursor: pointer; transition: all .2s;
+  }
+  .btn-cancel:hover { color: var(--text); border-color: var(--text); }
+
+  /* ── ALERTS SECTION ── */
+  .alerts-list { display: flex; flex-direction: column; gap: 12px; }
+  .alert-item {
+    background: var(--surface); border: 1px solid; border-radius: var(--radius);
+    padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+  }
+  .alert-item.critical { border-color: rgba(239,68,68,.3); background: rgba(239,68,68,.05); }
+  .alert-item.low { border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.05); }
+  .alert-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .alert-dot.critical { background: var(--danger); }
+  .alert-dot.low { background: var(--warning); }
+  .alert-content { flex: 1; }
+  .alert-name { font-weight: 600; font-size: 15px; }
+  .alert-desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .alert-stock { font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; }
+  .alert-stock.critical { color: var(--danger); }
+  .alert-stock.low { color: var(--warning); }
+
+  /* ── HISTORIAL ── */
+  .timeline { display: flex; flex-direction: column; gap: 12px; }
+  .timeline-item {
+    display: flex; gap: 16px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 20px;
+    align-items: center;
+  }
+  .t-icon {
+    width: 36px; height: 36px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px;
+  }
+  .t-icon.sale { background: rgba(34,197,94,.15); color: var(--success); }
+  .t-icon.add { background: rgba(56,189,248,.15); color: var(--info); }
+  .t-icon.edit { background: rgba(245,158,11,.15); color: var(--warning); }
+  .t-meta { flex: 1; }
+  .t-desc { font-size: 14px; font-weight: 500; }
+  .t-time { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .t-amount { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; }
+  .t-amount.pos { color: var(--success); }
+  .t-amount.neg { color: var(--danger); }
+
+  /* ── NO DATA ── */
+  .empty-msg { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">📦 StockFlow</div>
+    <div class="login-sub">Sistema de Gestión de Inventario</div>
+    <div class="field-group">
+      <label>Usuario</label>
+      <input type="text" id="username" placeholder="admin" value="admin">
+    </div>
+    <div class="field-group">
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="••••••••" value="1234">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Iniciar sesión</button>
+    <div class="login-error" id="login-error">Usuario o contraseña incorrectos.</div>
+    <div class="login-hint">Demo: admin / 1234</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">StockFlow</div>
+    <nav>
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('productos')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"/></svg>
+        Productos
+      </div>
+      <div class="nav-item" onclick="showPage('alertas')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        Alertas <span id="alert-badge" style="margin-left:auto;background:var(--danger);color:#fff;font-size:11px;padding:2px 7px;border-radius:20px;display:none;"></span>
+      </div>
+      <div class="nav-item" onclick="showPage('historial')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 7 7 7"/></svg>
+        Historial
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="logout-btn" onclick="doLogout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Cerrar sesión
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-title">Dashboard</div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Productos</div><div class="stat-value blue" id="stat-total">0</div></div>
+        <div class="stat-card"><div class="stat-label">Valor Inventario</div><div class="stat-value green" id="stat-valor">$0</div></div>
+        <div class="stat-card"><div class="stat-label">Stock Bajo</div><div class="stat-value yellow" id="stat-bajo">0</div></div>
+        <div class="stat-card"><div class="stat-label">Sin Stock</div><div class="stat-value red" id="stat-agotado">0</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Resumen de Inventario</div>
+        </div>
+        <table>
+          <thead><tr><th>Producto</th><th>Categoría</th><th>Stock</th><th>Precio</th><th>Estado</th></tr></thead>
+          <tbody id="dash-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PRODUCTOS -->
+    <div id="page-productos" class="page">
+      <div class="page-title">Productos</div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Todos los productos</div>
+          <div class="table-actions">
+            <input class="search-input" type="text" id="search-input" placeholder="Buscar producto..." oninput="renderProductos()">
+            <button class="btn-add" onclick="openModal()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Agregar
+            </button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Stock</th><th>Mín.</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="productos-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ALERTAS -->
+    <div id="page-alertas" class="page">
+      <div class="page-title">Alertas de Stock</div>
+      <div class="alerts-list" id="alerts-list"></div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="page-historial" class="page">
+      <div class="page-title">Historial de Ventas y Cambios</div>
+      <div class="table-actions" style="margin-bottom:16px; justify-content:flex-end; display:flex; gap:10px;">
+        <button class="btn-add" style="background:var(--success);" onclick="openVentaModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Registrar Venta
+        </button>
+      </div>
+      <div class="timeline" id="historial-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL PRODUCTO -->
+<div class="modal-overlay" id="modal-producto">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Agregar Producto</div>
+    <div class="form-grid">
+      <input type="hidden" id="edit-id">
+      <div class="form-field"><label>Nombre del producto</label><input type="text" id="f-nombre" placeholder="Ej: Laptop Lenovo"></div>
+      <div class="form-field"><label>Categoría</label>
+        <select id="f-categoria">
+          <option>Electrónica</option><option>Ropa</option><option>Alimentos</option>
+          <option>Herramientas</option><option>Oficina</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Stock actual</label><input type="number" id="f-stock" min="0" placeholder="0"></div>
+      <div class="form-field"><label>Stock mínimo</label><input type="number" id="f-minimo" min="0" placeholder="5"></div>
+      <div class="form-field"><label>Precio unitario ($)</label><input type="number" id="f-precio" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="form-field"><label>Proveedor</label><input type="text" id="f-proveedor" placeholder="Ej: Samsung Colombia"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-primary" style="width:auto;padding:10px 24px;" onclick="saveProducto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VENTA -->
+<div class="modal-overlay" id="modal-venta">
+  <div class="modal">
+    <div class="modal-title">Registrar Venta</div>
+    <div class="form-grid">
+      <div class="form-field full"><label>Producto</label>
+        <select id="v-producto"></select>
+      </div>
+      <div class="form-field"><label>Cantidad vendida</label><input type="number" id="v-cantidad" min="1" value="1" placeholder="1"></div>
+      <div class="form-field"><label>Cliente (opcional)</label><input type="text" id="v-cliente" placeholder="Ej: Juan Pérez"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeVentaModal()">Cancelar</button>
+      <button class="btn-primary" style="width:auto;padding:10px 24px;background:var(--success);" onclick="registrarVenta()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════ DATA ═══════════════════
+let productos = [];
+
+async function cargarProductos() {
+  try {
+    const response = await fetch("http://localhost:3000/productos");
+    productos = await response.json();
+    refreshAll();
+    await cargarHistorial();
+  } catch (error) {
+    console.error("Error cargando productos:", error);
+  }
+}
+
+async function cargarHistorial() {
+  try {
+    const response = await fetch("http://localhost:3000/historial");
+    historial = await response.json();
+    renderHistorial();
+  } catch (error) {
+    console.error("Error cargando historial:", error);
+  }
+}
+
+let historial = [];
+
+let nextId = 7;
+
+const USERS = { admin: '1234', vendedor: 'venta1' };
+
+// ═══════════════════ AUTH ═══════════════════
+function doLogin() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value.trim();
+  if (USERS[u] === p) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    refreshAll();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ═══════════════════ NAVIGATION ═══════════════════
+async function showPage(name) {
+  document.querySelectorAll('.page')
+    .forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item')
+    .forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name)
+    .classList.add('active');
+  event.currentTarget.classList.add('active');
+  refreshAll();
+  await cargarHistorial();
+
+}
+
+// ═══════════════════ RENDER ═══════════════════
+function getEstado(p) {
+  if (p.stock === 0) return { label:'Agotado', cls:'badge-danger' };
+  if (p.stock < p.minimo) return { label:'Stock bajo', cls:'badge-warning' };
+  return { label:'Disponible', cls:'badge-success' };
+}
+
+function refreshAll() {
+  renderDashboard();
+  renderProductos();
+  renderAlertas();
+  renderHistorial();
+  updateAlertBadge();
+}
+
+function renderDashboard() {
+  const total = productos.length;
+  const valor = productos.reduce((a,p) => a + p.stock * p.precio, 0);
+  const bajo = productos.filter(p => p.stock > 0 && p.stock < p.minimo).length;
+  const agotado = productos.filter(p => p.stock === 0).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-valor').textContent = '$' + valor.toLocaleString('es-CO');
+  document.getElementById('stat-bajo').textContent = bajo;
+  document.getElementById('stat-agotado').textContent = agotado;
+  const tb = document.getElementById('dash-table');
+  tb.innerHTML = productos.slice(0,8).map(p => {
+    const e = getEstado(p);
+    return `<tr><td>${p.nombre}</td><td>${p.categoria}</td><td><b>${p.stock}</b></td><td>$${p.precio}</td><td><span class="badge ${e.cls}">${e.label}</span></td></tr>`;
+  }).join('');
+}
+
+function renderProductos() {
+  const q = document.getElementById('search-input')?.value.toLowerCase() || '';
+  const filtered = productos.filter(p => p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q));
+  const tb = document.getElementById('productos-table');
+  if (!filtered.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-msg">Sin resultados</td></tr>'; return; }
+  tb.innerHTML = filtered.map(p => {
+    const e = getEstado(p);
+    return `<tr>
+      <td style="color:var(--muted);font-size:12px;">#${p.id}</td>
+      <td style="font-weight:500">${p.nombre}</td>
+      <td><span style="font-size:12px;color:var(--muted)">${p.categoria}</span></td>
+      <td><b style="color:${p.stock===0?'var(--danger)':p.stock<p.minimo?'var(--warning)':'var(--text)'}">${p.stock}</b></td>
+      <td style="color:var(--muted)">${p.minimo}</td>
+      <td>$${p.precio}</td>
+      <td><span class="badge ${e.cls}">${e.label}</span></td>
+      <td style="display:flex;gap:6px;">
+        <button class="icon-btn" onclick="openModal(${p.id})" title="Editar">✏️</button>
+        <button class="icon-btn del" onclick="deleteProducto(${p.id})" title="Eliminar">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAlertas() {
+  const alertas = productos.filter(p => p.stock <= p.minimo);
+  const el = document.getElementById('alerts-list');
+  if (!alertas.length) { el.innerHTML = '<div class="empty-msg" style="background:var(--surface);border-radius:12px;padding:40px">✅ Sin alertas activas — ¡Inventario saludable!</div>'; return; }
+  el.innerHTML = alertas.map(p => {
+    const cls = p.stock === 0 ? 'critical' : 'low';
+    const msg = p.stock === 0 ? 'Producto AGOTADO — requiere reposición urgente' : `Stock por debajo del mínimo (mín: ${p.minimo} unidades)`;
+    return `<div class="alert-item ${cls}">
+      <div class="alert-dot ${cls}"></div>
+      <div class="alert-content">
+        <div class="alert-name">${p.nombre}</div>
+        <div class="alert-desc">${msg} · Proveedor: ${p.proveedor}</div>
+      </div>
+      <div class="alert-stock ${cls}">${p.stock}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderHistorial() {
+  console.log(historial);
+  const el = document.getElementById('historial-list');
+  if (!historial.length) {
+    el.innerHTML = `
+      <div class="empty-msg">
+        Sin movimientos registrados
+      </div>
+    `;
+    return;
+  }
+  const icons = {
+    add: '📦',
+    edit: '✏️',
+    delete: '🗑️',
+    sale: '💰'
+  };
+  el.innerHTML = historial.map(h => `
+    <div class="timeline-item">
+      <div class="t-icon ${h.tipo}">
+        ${icons[h.tipo] || '📋'}
+      </div>
+      <div class="t-meta">
+        <div class="t-desc">
+          ${h.descripcion}
+        </div>
+        <div class="t-time">
+          ${new Date(h.fecha).toLocaleString('es-CO')}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateAlertBadge() {
+  const n = productos.filter(p => p.stock <= p.minimo).length;
+  const b = document.getElementById('alert-badge');
+  b.textContent = n;
+  b.style.display = n > 0 ? 'inline' : 'none';
+}
+
+// ═══════════════════ CRUD ═══════════════════
+function openModal(id) {
+  const m = document.getElementById('modal-producto');
+  document.getElementById('edit-id').value = '';
+  document.getElementById('f-nombre').value = '';
+  document.getElementById('f-stock').value = '';
+  document.getElementById('f-minimo').value = '';
+  document.getElementById('f-precio').value = '';
+  document.getElementById('f-proveedor').value = '';
+  document.getElementById('modal-title').textContent = 'Agregar Producto';
+  if (id) {
+    const p = productos.find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('edit-id').value = id;
+    document.getElementById('f-nombre').value = p.nombre;
+    document.getElementById('f-categoria').value = p.categoria;
+    document.getElementById('f-stock').value = p.stock;
+    document.getElementById('f-minimo').value = p.minimo;
+    document.getElementById('f-precio').value = p.precio;
+    document.getElementById('f-proveedor').value = p.proveedor;
+    document.getElementById('modal-title').textContent = 'Editar Producto';
+  }
+  m.classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-producto').classList.remove('open'); }
+
+let editingId = null;
+
+async function saveProducto() {
+
+  const nombre = document.getElementById('f-nombre').value.trim();
+  const categoria = document.getElementById('f-categoria').value;
+  const stock = parseInt(document.getElementById('f-stock').value);
+  const minimo = parseInt(document.getElementById('f-minimo').value);
+  const precio = parseFloat(document.getElementById('f-precio').value);
+  const proveedor = document.getElementById('f-proveedor').value.trim();
+
+  if (!nombre || isNaN(stock) || isNaN(precio)) {
+    return alert('Completa todos los campos requeridos.');
+  }
+
+  const data = {
+    nombre,
+    categoria,
+    stock,
+    minimo,
+    precio,
+    proveedor
+  };
+
+  try {
+
+    let response;
+
+    // EDITAR
+    if (editingId) {
+
+      response = await fetch(`http://localhost:3000/productos/${editingId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+
+    } else {
+
+      // CREAR
+      response = await fetch("http://localhost:3000/productos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+      });
+
+    }
+
+    if (response.ok) {
+
+      closeModal();
+
+      editingId = null;
+
+      await cargarProductos();
+
+      refreshAll();
+
+      alert("Producto guardado 😎");
+
+    } else {
+
+      alert("Error guardando producto");
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert("Error conectando con el servidor");
+
+  }
+}
+
+async function deleteProducto(id) {
+  const p = productos.find(x => x.id === id);
+
+  if (!confirm(`¿Eliminar "${p.nombre}"?`)) return;
+
+  try {
+    const response = await fetch(`http://localhost:3000/productos/${id}`, {
+      method: "DELETE"
+    });
+
+    if (response.ok) {
+      const now = new Date().toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      historial.push({
+        tipo: 'edit',
+        desc: `Producto "${p.nombre}" eliminado del inventario`,
+        tiempo: `Hoy ${now}`,
+        monto: null
+      });
+
+      await cargarProductos();
+      refreshAll();
+
+      alert("Producto eliminado 🗑️");
+    } else {
+      alert("Error eliminando producto");
+    }
+
+  } catch (error) {
+    console.error(error);
+    alert("Error conectando con el servidor");
+  }
+}
+
+// ═══════════════════ VENTAS ═══════════════════
+function openVentaModal() {
+  const sel = document.getElementById('v-producto');
+  sel.innerHTML = productos.filter(p => p.stock > 0).map(p => `<option value="${p.id}">${p.nombre} (stock: ${p.stock})</option>`).join('');
+  document.getElementById('modal-venta').classList.add('open');
+}
+function closeVentaModal() { document.getElementById('modal-venta').classList.remove('open'); }
+async function registrarVenta() {
+  const productoId = parseInt(document.getElementById('v-producto').value);
+  const cantidad = parseInt(document.getElementById('v-cantidad').value);
+  const cliente = document.getElementById('v-cliente').value.trim();
+  if (isNaN(cantidad) || cantidad < 1) {
+    return alert('Cantidad inválida.');
+  }
+  try {
+    const response = await fetch("http://localhost:3000/ventas", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        productoId,
+        cantidad,
+        cliente
+      })
+    });
+    if (response.ok) {
+      closeVentaModal();
+      await cargarProductos();
+      await cargarHistorial();
+      refreshAll();
+      alert("Venta registrada 😎");
+    } else {
+      const msg = await response.text();
+      alert(msg);
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Error registrando venta");
+  }
+}
+
+cargarProductos();
+cargarHistorial();
+
+</script>
+</body>
+</html>
