@@ -206,7 +206,25 @@ app.post("/ventas", (req, res) => {
             return res.status(500).send("Error actualizando stock");
           }
 
-          res.send("Venta registrada 😎");
+          // GUARDAR EN HISTORIAL
+          db.query(
+            "INSERT INTO historial (tipo, descripcion) VALUES (?, ?)",
+            [
+              "venta",
+              `Venta de ${cantidad} unidades de ${producto.nombre}`
+            ],
+
+            (err3) => {
+
+              if (err3) {
+                console.log(err3);
+                return res.status(500).send("Error guardando historial");
+              }
+
+              res.send("Venta registrada 😎");
+
+            }
+          );
 
         }
       );
