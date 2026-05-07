@@ -217,6 +217,26 @@ app.post("/ventas", (req, res) => {
 });
 
 
+app.get("/historial", (req, res) => {
+
+  db.query(
+    "SELECT * FROM historial ORDER BY fecha DESC",
+
+    (err, results) => {
+
+      if (err) {
+        console.log(err);
+        res.status(500).send("Error obteniendo historial");
+      } else {
+        res.json(results);
+      }
+
+    }
+  );
+
+});
+
+
 // =========================
 // SERVIDOR
 // =========================
