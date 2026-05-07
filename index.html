@@ -845,9 +845,12 @@ async function registrarVenta() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        productoId,
-        cantidad,
-        cliente
+       nombre,
+       categoria,
+       stock_actual: stock,
+       stock_minimo: minimo,
+       precio,
+       proveedor
       })
     });
     if (response.ok) {
