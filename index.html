@@ -663,7 +663,7 @@ async function deleteProducto(id) {
   if (!confirm(`¿Eliminar "${p.nombre}"?`)) return;
 
   try {
-    const response = await fetch(`http://localhost:3000/productos/${id}`, {
+    const response = await fetch(`https://stockflow-mkrb.onrender.com/productos/${id}`, {
       method: "DELETE"
     });
 
