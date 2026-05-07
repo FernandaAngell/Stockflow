@@ -667,6 +667,59 @@ function renderAlertas() {
   }).join('');
 }
 
+function renderHistorial() {
+
+  const el = document.getElementById('historial-list');
+
+  if (!historial.length) {
+
+    el.innerHTML = `
+      <div class="empty-msg">
+        Sin movimientos registrados
+      </div>
+    `;
+
+    return;
+  }
+
+  el.innerHTML = historial.map(h => {
+
+    let icon = '📦';
+    let cls = 'add';
+
+    if (h.tipo === 'sale') {
+      icon = '💸';
+      cls = 'sale';
+    }
+
+    if (h.tipo === 'edit') {
+      icon = '✏️';
+      cls = 'edit';
+    }
+
+    return `
+      <div class="timeline-item">
+
+        <div class="t-icon ${cls}">
+          ${icon}
+        </div>
+
+        <div class="t-meta">
+          <div class="t-desc">
+            ${h.descripcion}
+          </div>
+
+          <div class="t-time">
+            ${new Date(h.fecha).toLocaleString('es-CO')}
+          </div>
+        </div>
+
+      </div>
+    `;
+
+  }).join('');
+}
+
 function updateAlertBadge() {
 
   const n = productos.filter(p =>
@@ -684,8 +737,8 @@ function updateAlertBadge() {
 // ═══════════════════ CRUD ═══════════════════
 function openModal(id) {
 
-   editingId = null;
-   
+  editingId = null;
+
   const m = document.getElementById('modal-producto');
   document.getElementById('edit-id').value = '';
   document.getElementById('f-nombre').value = '';
